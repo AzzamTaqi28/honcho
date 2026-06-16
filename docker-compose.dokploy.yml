@@ -1,4 +1,16 @@
 services:
+  local-embedding:
+    image: localai/localai:latest-cpu
+    environment:
+      MODELS_PATH: /models
+      THREADS: 2
+      CONTEXT_SIZE: 512
+    volumes:
+      - local_embedding_models:/models
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+
   api:
     build:
       context: .
@@ -9,6 +21,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      local-embedding:
+        condition: service_started
     environment:
       DB_CONNECTION_URI: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@database:5432/postgres
       CACHE_URL: redis://redis:6379/0?suppress=true
@@ -46,14 +60,19 @@ services:
       DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
       DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
 
-      EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-3-small
-      EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
-      EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LLM_OPENAI_API_KEY
+      # Local open-source embedding via LocalAI
+      LOCAL_EMBEDDING_API_KEY: dummy
+      EMBEDDING_MODEL_CONFIG__MODEL: all-MiniLM-L6-v2
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
 
       VECTOR_STORE_TYPE: pgvector
+
     ports:
       - "8000:8000"
+
     restart: unless-stopped
+
     healthcheck:
       test:
         [
@@ -64,8 +83,10 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
+
     networks:
       - dokploy-network
+
   deriver:
     build:
       context: .
@@ -78,6 +99,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      local-embedding:
+        condition: service_started
     environment:
       DB_CONNECTION_URI: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@database:5432/postgres
       CACHE_URL: redis://redis:6379/0?suppress=true
@@ -115,14 +138,18 @@ services:
       DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
       DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
 
-      EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-3-small
-      EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
-      EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LLM_OPENAI_API_KEY
+      # Local open-source embedding via LocalAI
+      LOCAL_EMBEDDING_API_KEY: dummy
+      EMBEDDING_MODEL_CONFIG__MODEL: all-MiniLM-L6-v2
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
 
       VECTOR_STORE_TYPE: pgvector
+
     restart: unless-stopped
     networks:
       - dokploy-network
+
   database:
     image: pgvector/pgvector:pg15
     command: ["postgres", "-c", "max_connections=200"]
@@ -142,6 +169,7 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
+
   redis:
     image: redis:8.2
     volumes:
@@ -154,6 +182,12 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
+
 volumes:
   honcho_pgdata:
   honcho_redis_data:
+  local_embedding_models:
+
+networks:
+  dokploy-network:
+    external: true
