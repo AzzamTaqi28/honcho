@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: honcho-api
     entrypoint: ["sh", "docker/entrypoint.sh"]
     depends_on:
       database:
@@ -65,12 +64,12 @@ services:
       timeout: 5s
       retries: 15
       start_period: 30s
-
+    networks:
+      - dokploy-network
   deriver:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: honcho-deriver
     entrypoint: ["/app/.venv/bin/python", "-m", "src.deriver"]
     depends_on:
       api:
@@ -122,10 +121,10 @@ services:
 
       VECTOR_STORE_TYPE: pgvector
     restart: unless-stopped
-
+    networks:
+      - dokploy-network
   database:
     image: pgvector/pgvector:pg15
-    container_name: honcho-postgres
     command: ["postgres", "-c", "max_connections=200"]
     environment:
       POSTGRES_DB: postgres
@@ -141,10 +140,10 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
-
+    networks:
+      - dokploy-network
   redis:
     image: redis:8.2
-    container_name: honcho-redis
     volumes:
       - honcho_redis_data:/data
     healthcheck:
@@ -153,7 +152,8 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
-
+    networks:
+      - dokploy-network
 volumes:
   honcho_pgdata:
   honcho_redis_data:
