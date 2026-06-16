@@ -1,13 +1,23 @@
 services:
   local-embedding:
-    image: localai/localai:latest-aio-cpu
+    image: localai/localai:latest-cpu
     environment:
       MODELS_PATH: /models
       THREADS: 2
       CONTEXT_SIZE: 512
     volumes:
-      - local_embedding_models:/models
+      - ./localai-models:/models
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:8080/readyz >/dev/null 2>&1 || wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     networks:
       - dokploy-network
 
@@ -62,7 +72,7 @@ services:
 
       # Local open-source embedding via LocalAI
       LOCAL_EMBEDDING_API_KEY: dummy
-      EMBEDDING_MODEL_CONFIG__MODEL: all-MiniLM-L6-v2
+      EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-ada-002
       EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
       EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
 
@@ -140,7 +150,7 @@ services:
 
       # Local open-source embedding via LocalAI
       LOCAL_EMBEDDING_API_KEY: dummy
-      EMBEDDING_MODEL_CONFIG__MODEL: all-MiniLM-L6-v2
+      EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-ada-002
       EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
       EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
 
@@ -186,7 +196,6 @@ services:
 volumes:
   honcho_pgdata:
   honcho_redis_data:
-  local_embedding_models:
 
 networks:
   dokploy-network:
