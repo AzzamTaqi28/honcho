@@ -1,0 +1,5 @@
+name: text-embedding-ada-002
+backend: llama-cpp
+embeddings: true
+parameters:
+  model: granite-embedding-107m-multilingual-f16.gguf
