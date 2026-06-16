@@ -11,8 +11,8 @@ services:
 
         mkdir -p /models
 
-        cat > /models/text-embedding-ada-002.yaml <<'EOF'
-        name: text-embedding-ada-002
+        cat > /models/granite-embedding-384.yaml <<'EOF'
+        name: granite-embedding-384
         backend: llama-cpp
         type: embeddings
         embeddings: true
@@ -32,8 +32,8 @@ services:
         echo "=== /models content ==="
         ls -lah /models
 
-        echo "=== text-embedding-ada-002.yaml ==="
-        cat /models/text-embedding-ada-002.yaml
+        echo "=== granite-embedding-384.yaml ==="
+        cat /models/granite-embedding-384.yaml
     volumes:
       - local_embedding_models:/models
     restart: "no"
@@ -105,7 +105,7 @@ services:
       DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
 
       LOCAL_EMBEDDING_API_KEY: dummy
-      EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-ada-002
+      EMBEDDING_MODEL_CONFIG__MODEL: granite-embedding-384
       EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
       EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
 
@@ -182,7 +182,7 @@ services:
       DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
 
       LOCAL_EMBEDDING_API_KEY: dummy
-      EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-ada-002
+      EMBEDDING_MODEL_CONFIG__MODEL: granite-embedding-384
       EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
       EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
 
