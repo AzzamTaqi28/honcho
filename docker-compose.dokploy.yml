@@ -29,16 +29,19 @@ services:
           echo "Embedding model already exists, skip download."
         fi
 
+        echo "=== /models content ==="
         ls -lah /models
+
+        echo "=== text-embedding-ada-002.yaml ==="
         cat /models/text-embedding-ada-002.yaml
     volumes:
       - local_embedding_models:/models
     restart: "no"
     networks:
       - dokploy-network
-      
+
   local-embedding:
-    image: localai/localai:v3.12.1-cpu
+    image: localai/localai:latest-cpu
     environment:
       MODELS_PATH: /models
       THREADS: 2
@@ -51,7 +54,7 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
-      
+
   api:
     build:
       context: .
