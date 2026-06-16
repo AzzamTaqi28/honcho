@@ -59,7 +59,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    entrypoint: ["/app/.venv/bin/python", "scripts/configure_embeddings.py"]
+    entrypoint:
+      - sh
+      - -lc
+      - |
+        set -e
+
+        echo "Running migrations before configuring embeddings..."
+        /app/.venv/bin/alembic upgrade head
+
+        echo "Configuring embedding schema..."
+        /app/.venv/bin/python scripts/configure_embeddings.py
     depends_on:
       database:
         condition: service_healthy
@@ -78,7 +88,6 @@ services:
     restart: "no"
     networks:
       - dokploy-network
-
   api:
     build:
       context: .
