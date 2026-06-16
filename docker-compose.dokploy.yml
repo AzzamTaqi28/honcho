@@ -1,6 +1,6 @@
 services:
   local-embedding:
-    image: localai/localai:latest-cpu
+    image: localai/localai:latest-aio-cpu
     environment:
       MODELS_PATH: /models
       THREADS: 2
