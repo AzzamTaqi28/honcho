@@ -1,4 +1,41 @@
 services:
+  local-embedding-init:
+    image: alpine:3.20
+    command:
+      - sh
+      - -lc
+      - |
+        set -e
+
+        apk add --no-cache curl ca-certificates
+
+        mkdir -p /models
+
+        cat > /models/text-embedding-ada-002.yaml <<'EOF'
+        name: text-embedding-ada-002
+        backend: llama-cpp
+        embeddings: true
+        parameters:
+          model: /models/granite-embedding-107m-multilingual-f16.gguf
+        EOF
+
+        if [ ! -s /models/granite-embedding-107m-multilingual-f16.gguf ]; then
+          echo "Downloading granite embedding model..."
+          curl -L \
+            -o /models/granite-embedding-107m-multilingual-f16.gguf \
+            https://huggingface.co/bartowski/granite-embedding-107m-multilingual-GGUF/resolve/main/granite-embedding-107m-multilingual-f16.gguf
+        else
+          echo "Embedding model already exists, skip download."
+        fi
+
+        ls -lah /models
+        cat /models/text-embedding-ada-002.yaml
+    volumes:
+      - local_embedding_models:/models
+    restart: "no"
+    networks:
+      - dokploy-network
+
   local-embedding:
     image: localai/localai:latest-cpu
     environment:
@@ -6,18 +43,11 @@ services:
       THREADS: 2
       CONTEXT_SIZE: 512
     volumes:
-      - ./localai-models:/models
+      - local_embedding_models:/models
+    depends_on:
+      local-embedding-init:
+        condition: service_completed_successfully
     restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://127.0.0.1:8080/readyz >/dev/null 2>&1 || wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 60s
     networks:
       - dokploy-network
 
@@ -70,7 +100,6 @@ services:
       DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
       DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
 
-      # Local open-source embedding via LocalAI
       LOCAL_EMBEDDING_API_KEY: dummy
       EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-ada-002
       EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
@@ -148,7 +177,6 @@ services:
       DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
       DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
 
-      # Local open-source embedding via LocalAI
       LOCAL_EMBEDDING_API_KEY: dummy
       EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-ada-002
       EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
@@ -196,6 +224,7 @@ services:
 volumes:
   honcho_pgdata:
   honcho_redis_data:
+  local_embedding_models:
 
 networks:
   dokploy-network:
