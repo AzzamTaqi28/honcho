@@ -55,6 +55,30 @@ services:
     networks:
       - dokploy-network
 
+  configure-embeddings:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["/app/.venv/bin/python", "scripts/configure_embeddings.py"]
+    depends_on:
+      database:
+        condition: service_healthy
+      local-embedding:
+        condition: service_started
+    environment:
+      DB_CONNECTION_URI: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@database:5432/postgres
+      VECTOR_STORE_TYPE: pgvector
+
+      LOCAL_EMBEDDING_API_KEY: dummy
+      EMBEDDING_MODEL_CONFIG__MODEL: granite-embedding-384
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
+      EMBEDDING_MODEL_CONFIG__DIMENSIONS_MODE: never
+      EMBEDDING_VECTOR_DIMENSIONS: "384"
+    restart: "no"
+    networks:
+      - dokploy-network
+
   api:
     build:
       context: .
@@ -67,6 +91,8 @@ services:
         condition: service_healthy
       local-embedding:
         condition: service_started
+      configure-embeddings:
+        condition: service_completed_successfully
     environment:
       DB_CONNECTION_URI: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@database:5432/postgres
       CACHE_URL: redis://redis:6379/0?suppress=true
@@ -146,6 +172,8 @@ services:
         condition: service_healthy
       local-embedding:
         condition: service_started
+      configure-embeddings:
+        condition: service_completed_successfully
     environment:
       DB_CONNECTION_URI: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@database:5432/postgres
       CACHE_URL: redis://redis:6379/0?suppress=true
