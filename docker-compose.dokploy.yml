@@ -108,6 +108,7 @@ services:
       EMBEDDING_MODEL_CONFIG__MODEL: granite-embedding-384
       EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
       EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
+      EMBEDDING_MODEL_CONFIG__DIMENSIONS_MODE: never
       EMBEDDING_VECTOR_DIMENSIONS: "384"
 
       VECTOR_STORE_TYPE: pgvector
@@ -121,12 +122,12 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()\""
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=10).read()\""
         ]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 30s
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
 
     networks:
       - dokploy-network
@@ -186,8 +187,9 @@ services:
       EMBEDDING_MODEL_CONFIG__MODEL: granite-embedding-384
       EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: http://local-embedding:8080/v1
       EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LOCAL_EMBEDDING_API_KEY
+      EMBEDDING_MODEL_CONFIG__DIMENSIONS_MODE: never
       EMBEDDING_VECTOR_DIMENSIONS: "384"
-      
+
       VECTOR_STORE_TYPE: pgvector
 
     restart: unless-stopped
