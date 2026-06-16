@@ -1,0 +1,149 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: honcho-api
+    entrypoint: ["sh", "docker/entrypoint.sh"]
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_CONNECTION_URI: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@database:5432/postgres
+      CACHE_URL: redis://redis:6379/0?suppress=true
+      CACHE_ENABLED: "true"
+
+      AUTH_USE_AUTH: "true"
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
+
+      LLM_OPENAI_API_KEY: ${LLM_OPENAI_API_KEY}
+
+      DERIVER_MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DERIVER_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      SUMMARY_MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      SUMMARY_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DREAM_DEDUCTION_MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DREAM_DEDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DREAM_INDUCTION_MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DREAM_INDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__minimal__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__minimal__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__low__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__low__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__medium__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__medium__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__high__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__high__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-3-small
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LLM_OPENAI_API_KEY
+
+      VECTOR_STORE_TYPE: pgvector
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  deriver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: honcho-deriver
+    entrypoint: ["/app/.venv/bin/python", "-m", "src.deriver"]
+    depends_on:
+      api:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_CONNECTION_URI: postgresql+psycopg://postgres:${POSTGRES_PASSWORD}@database:5432/postgres
+      CACHE_URL: redis://redis:6379/0?suppress=true
+      CACHE_ENABLED: "true"
+
+      AUTH_USE_AUTH: "true"
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
+
+      LLM_OPENAI_API_KEY: ${LLM_OPENAI_API_KEY}
+
+      DERIVER_MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DERIVER_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      SUMMARY_MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      SUMMARY_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DREAM_DEDUCTION_MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DREAM_DEDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DREAM_INDUCTION_MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DREAM_INDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__minimal__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__minimal__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__low__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__low__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__medium__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__medium__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__high__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__high__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL: ${HONCHO_MODEL}
+      DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+
+      EMBEDDING_MODEL_CONFIG__MODEL: text-embedding-3-small
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL: ${LLM_OPENAI_BASE_URL}
+      EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV: LLM_OPENAI_API_KEY
+
+      VECTOR_STORE_TYPE: pgvector
+    restart: unless-stopped
+
+  database:
+    image: pgvector/pgvector:pg15
+    container_name: honcho-postgres
+    command: ["postgres", "-c", "max_connections=200"]
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - honcho_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.2
+    container_name: honcho-redis
+    volumes:
+      - honcho_redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  honcho_pgdata:
+  honcho_redis_data:
