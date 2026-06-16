@@ -69,7 +69,7 @@ services:
         /app/.venv/bin/alembic upgrade head
 
         echo "Configuring embedding schema..."
-        /app/.venv/bin/python scripts/configure_embeddings.py
+        /app/.venv/bin/python scripts/configure_embeddings.py --yes
     depends_on:
       database:
         condition: service_healthy
