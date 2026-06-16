@@ -16,7 +16,7 @@ services:
         backend: llama-cpp
         embeddings: true
         parameters:
-          model: /models/granite-embedding-107m-multilingual-f16.gguf
+          model: granite-embedding-107m-multilingual-f16.gguf
         EOF
 
         if [ ! -s /models/granite-embedding-107m-multilingual-f16.gguf ]; then
@@ -37,7 +37,7 @@ services:
       - dokploy-network
 
   local-embedding:
-    image: localai/localai:latest-cpu
+    image: localai/localai:v3.12.1-cpu
     environment:
       MODELS_PATH: /models
       THREADS: 2
@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
-
+      
   api:
     build:
       context: .
